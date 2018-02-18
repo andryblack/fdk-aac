@@ -95,9 +95,9 @@ amm-info@iis.fraunhofer.de
 #include "tpdec_lib.h"
 #include "FDK_core.h" /* FDK_tools version info */
 
-
+#ifndef DISABLE_SBR
  #include "sbrdecoder.h"
-
+#endif
 
 
 
@@ -264,7 +264,9 @@ setConcealMethod ( const HANDLE_AACDECODER  self,   /*!< Handle of the decoder i
 {
   AAC_DECODER_ERROR errorStatus = AAC_DEC_OK;
   CConcealParams  *pConcealData = NULL;
+#ifndef DISABLE_SBR
   HANDLE_SBRDECODER hSbrDec = NULL;
+#endif
   HANDLE_AAC_DRC hDrcInfo = NULL;
   HANDLE_PCM_DOWNMIX hPcmDmx = NULL;
   CConcealmentMethod backupMethod = ConcealMethodNone;
@@ -274,7 +276,9 @@ setConcealMethod ( const HANDLE_AACDECODER  self,   /*!< Handle of the decoder i
   /* check decoder handle */
   if (self != NULL) {
     pConcealData = &self->concealCommonData;
+ #ifndef DISABLE_SBR
     hSbrDec = self->hSbrDecoder;
+ #endif
     hDrcInfo = self->hDrcInfo;
     hPcmDmx = self->hPcmUtils;
   }
@@ -301,7 +305,7 @@ setConcealMethod ( const HANDLE_AACDECODER  self,   /*!< Handle of the decoder i
 
   /* Get new delay */
   bsDelay = CConcealment_GetDelay(pConcealData);
-
+#ifndef DISABLE_SBR
   {
     SBR_ERROR sbrErr = SBRDEC_OK;
 
@@ -326,7 +330,7 @@ setConcealMethod ( const HANDLE_AACDECODER  self,   /*!< Handle of the decoder i
       goto bail;
     }
   }
-
+#endif
   errorStatus =
     aacDecoder_drcSetParam (
       hDrcInfo,
@@ -370,12 +374,14 @@ bail:
         AACDEC_CONCEAL_PARAM_NOT_SPECIFIED,
         AACDEC_CONCEAL_PARAM_NOT_SPECIFIED
       );
+#ifndef DISABLE_SBR
     /* Revert SBR bitstream delay */
     sbrDecoder_SetParam (
         hSbrDec,
         SBR_SYSTEM_BITSTREAM_DELAY,
         backupDelay
       );
+#endif
     /* Revert DRC bitstream delay */
     aacDecoder_drcSetParam (
         hDrcInfo,
@@ -401,16 +407,23 @@ aacDecoder_SetParam ( const HANDLE_AACDECODER  self,   /*!< Handle of the decode
 {
   AAC_DECODER_ERROR errorStatus = AAC_DEC_OK;
   CConcealParams  *pConcealData = NULL;
+#ifndef DISABLE_SBR
   HANDLE_AAC_DRC hDrcInfo = NULL;
+#endif
   HANDLE_PCM_DOWNMIX hPcmDmx = NULL;
+#ifndef DISABLE_LIMITER
   TDLimiterPtr hPcmTdl = NULL;
-
+#endif
   /* check decoder handle */
   if (self != NULL) {
     pConcealData = &self->concealCommonData;
+#ifndef DISABLE_SBR
     hDrcInfo = self->hDrcInfo;
+#endif
     hPcmDmx = self->hPcmUtils;
+#ifndef DISABLE_LIMITER
     hPcmTdl = self->hLimiter;
+#endif
   } else {
     errorStatus = AAC_DEC_INVALID_HANDLE;
   }
@@ -429,7 +442,7 @@ aacDecoder_SetParam ( const HANDLE_AACDECODER  self,   /*!< Handle of the decode
     break;
 
   case AAC_PCM_MIN_OUTPUT_CHANNELS:
-    if (value < -1 || value > (8)) {
+    if (value < -1 || value > (MAX_CHANNELS)) {
       return AAC_DEC_SET_PARAM_FAIL;
     }
     {
@@ -452,7 +465,7 @@ aacDecoder_SetParam ( const HANDLE_AACDECODER  self,   /*!< Handle of the decode
     break;
 
   case AAC_PCM_MAX_OUTPUT_CHANNELS:
-    if (value < -1 || value > (8)) {
+    if (value < -1 || value > (MAX_CHANNELS)) {
       return AAC_DEC_SET_PARAM_FAIL;
     }
     {
@@ -494,7 +507,7 @@ aacDecoder_SetParam ( const HANDLE_AACDECODER  self,   /*!< Handle of the decode
     }
     break;
 
-
+#ifndef DISABLE_LIMITER
   case AAC_PCM_LIMITER_ENABLE:
     if (value < -1 || value > 1) {
       return AAC_DEC_SET_PARAM_FAIL;
@@ -534,6 +547,7 @@ aacDecoder_SetParam ( const HANDLE_AACDECODER  self,   /*!< Handle of the decode
       return AAC_DEC_SET_PARAM_FAIL;
     }
     break;
+#endif
 
   case AAC_PCM_OUTPUT_CHANNEL_MAPPING:
     switch (value) {
@@ -570,7 +584,7 @@ aacDecoder_SetParam ( const HANDLE_AACDECODER  self,   /*!< Handle of the decode
     self->qmfModeUser = (QMF_MODE)value;
     break;
 
-
+#ifndef DISABLE_SBR
   case AAC_DRC_ATTENUATION_FACTOR:
     /* DRC compression factor (where 0 is no and 127 is max compression) */
     errorStatus =
@@ -610,7 +624,7 @@ aacDecoder_SetParam ( const HANDLE_AACDECODER  self,   /*!< Handle of the decode
         value
       );
     break;
-
+#endif
 
   case AAC_TPDEC_CLEAR_BUFFER:
     transportDec_SetParam(self->hInput, TPDEC_PARAM_RESET, 1);
@@ -665,30 +679,32 @@ LINKSPEC_CPP HANDLE_AACDECODER aacDecoder_Open(TRANSPORT_TYPE transportFmt, UINT
 
   /* Register Config Update callback. */
   transportDec_RegisterAscCallback(pIn, aacDecoder_ConfigCallback, (void*)aacDec);
+  aacDec->qmfModeUser = NOT_DEFINED;
 
+#ifndef DISABLE_SBR
   /* open SBR decoder */
   if ( SBRDEC_OK != sbrDecoder_Open ( &aacDec->hSbrDecoder )) {
     err = -1;
     goto bail;
   }
-  aacDec->qmfModeUser = NOT_DEFINED;
+  
   transportDec_RegisterSbrCallback(aacDec->hInput, (cbSbr_t)sbrDecoder_Header, (void*)aacDec->hSbrDecoder);
-
+#endif
 
   pcmDmx_Open( &aacDec->hPcmUtils );
   if (aacDec->hPcmUtils == NULL) {
     err = -1;
     goto bail;
   }
-
-  aacDec->hLimiter = createLimiter(TDL_ATTACK_DEFAULT_MS, TDL_RELEASE_DEFAULT_MS, SAMPLE_MAX, (8), 96000);
+#ifndef DISABLE_LIMITER
+  aacDec->hLimiter = createLimiter(TDL_ATTACK_DEFAULT_MS, TDL_RELEASE_DEFAULT_MS, SAMPLE_MAX, (MAX_CHANNELS), 96000);
   if (NULL == aacDec->hLimiter) {
     err = -1;
     goto bail;
   }
   aacDec->limiterEnableUser = (UCHAR)-1;
   aacDec->limiterEnableCurr = 0;
-
+#endif
 
 
   /* Assure that all modules have same delay */
@@ -736,10 +752,11 @@ LINKSPEC_CPP AAC_DECODER_ERROR aacDecoder_Fill(
 static void aacDecoder_SignalInterruption(HANDLE_AACDECODER self)
 {
   CAacDecoder_SignalInterruption(self);
-
+#ifndef DISABLE_SBR
   if ( self->hSbrDecoder != NULL ) {
     sbrDecoder_SetParam(self->hSbrDecoder, SBR_BS_INTERRUPTION, 0);
   }
+#endif
 }
 
 static void aacDecoder_UpdateBitStreamCounters(CStreamInfo *pSi, HANDLE_FDK_BITSTREAM hBs, int nBits, AAC_DECODER_ERROR ErrorStatus)
@@ -846,7 +863,9 @@ LINKSPEC_CPP AAC_DECODER_ERROR aacDecoder_DecodeFrame(
     /* Signal bit stream interruption to other modules if required. */
     if ( fTpInterruption || (flags & (AACDEC_INTR|AACDEC_CLRHIST)) )
     {
+#ifndef DISABLE_SBR
       sbrDecoder_SetParam(self->hSbrDecoder, SBR_CLEAR_HISTORY, (flags&AACDEC_CLRHIST));
+#endif
       aacDecoder_SignalInterruption(self);
       if ( ! (flags & AACDEC_INTR) ) {
         ErrorStatus = AAC_DEC_TRANSPORT_SYNC_ERROR;
@@ -865,6 +884,7 @@ LINKSPEC_CPP AAC_DECODER_ERROR aacDecoder_DecodeFrame(
     /* Reset the output delay field. The modules will add their figures one after another. */
     self->streamInfo.outputDelay = 0;
 
+#ifndef DISABLE_LIMITER
     if (self->limiterEnableUser==(UCHAR)-1) {
       /* Enbale limiter for all non-lowdelay AOT's. */
       self->limiterEnableCurr = ( self->flags & (AC_LD|AC_ELD) ) ? 0 : 1;
@@ -873,6 +893,8 @@ LINKSPEC_CPP AAC_DECODER_ERROR aacDecoder_DecodeFrame(
       /* Use limiter configuration as requested. */
       self->limiterEnableCurr = self->limiterEnableUser;
     }
+#endif
+
     /* reset limiter gain on a per frame basis */
     self->extGain[0] = FL2FXCONST_DBL(1.0f/(float)(1<<TDL_GAIN_SCALING));
 
@@ -913,7 +935,7 @@ LINKSPEC_CPP AAC_DECODER_ERROR aacDecoder_DecodeFrame(
     {
       self->frameOK = 0;  /* if an error has occured do concealment in the SBR decoder too */
     }
-
+#ifndef DISABLE_SBR
     if (self->sbrEnabled)
     {
       SBR_ERROR sbrError = SBRDEC_OK;
@@ -985,7 +1007,7 @@ LINKSPEC_CPP AAC_DECODER_ERROR aacDecoder_DecodeFrame(
        }
      }
    }
-
+#endif
 
     {
     INT pcmLimiterScale = 0;
@@ -1004,7 +1026,11 @@ LINKSPEC_CPP AAC_DECODER_ERROR aacDecoder_DecodeFrame(
             self->channelType,
             self->channelIndices,
             self->channelOutputMapping,
+#ifndef DISABLE_LIMITER
             (self->limiterEnableCurr) ? &pcmLimiterScale : NULL
+#else
+            NULL
+#endif
       );
     if ( (ErrorStatus == AAC_DEC_OK)
       && (dmxErr == PCMDMX_INVALID_MODE) ) {
@@ -1013,10 +1039,12 @@ LINKSPEC_CPP AAC_DECODER_ERROR aacDecoder_DecodeFrame(
       ErrorStatus = AAC_DEC_DECODE_FRAME_ERROR;
     }
 
+#ifndef DISABLE_LIMITER
     if ( flags & AACDEC_CLRHIST ) {
       /* Delete the delayed signal. */
       resetLimiter(self->hLimiter);
     }
+
     if (self->limiterEnableCurr)
     {
       /* Set actual signal parameters */
@@ -1036,6 +1064,7 @@ LINKSPEC_CPP AAC_DECODER_ERROR aacDecoder_DecodeFrame(
       /* Announce the additional limiter output delay */
       self->streamInfo.outputDelay += getLimiterDelay(self->hLimiter);
     }
+#endif
     }
 
 
@@ -1073,21 +1102,22 @@ LINKSPEC_CPP void aacDecoder_Close ( HANDLE_AACDECODER self )
   if (self == NULL)
     return;
 
-
+#ifndef DISABLE_LIMITER
   if (self->hLimiter != NULL) {
     destroyLimiter(self->hLimiter);
   }
+#endif
 
   if (self->hPcmUtils != NULL) {
     pcmDmx_Close( &self->hPcmUtils );
   }
 
 
-
+#ifndef DISABLE_SBR
   if (self->hSbrDecoder != NULL) {
     sbrDecoder_Close(&self->hSbrDecoder);
   }
-
+#endif
   if (self->hInput != NULL) {
     transportDec_Close(&self->hInput);
   }
@@ -1108,8 +1138,9 @@ LINKSPEC_CPP INT aacDecoder_GetLibInfo ( LIB_INFO *info )
   if (info == NULL) {
     return -1;
   }
-
+#ifndef DISABLE_SBR
   sbrDecoder_GetLibInfo( info );
+#endif
   transportDec_GetLibInfo( info );
   FDK_toolsGetLibInfo( info );
   pcmDmx_GetLibInfo( info );

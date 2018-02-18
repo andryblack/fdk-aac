@@ -104,6 +104,7 @@ amm-info@iis.fraunhofer.de
 extern "C" {
 #endif
 
+#ifndef DISABLE_LIMITER
 
 typedef enum {
   TDLIMIT_OK = 0,
@@ -115,6 +116,8 @@ typedef enum {
 
   __error_codes_end
 } TDLIMITER_ERROR;
+
+
 
 struct TDLimiter;
 typedef struct TDLimiter* TDLimiterPtr;
@@ -224,6 +227,8 @@ TDLIMITER_ERROR setLimiterRelease(TDLimiterPtr limiter, unsigned int releaseMs);
 * returns:    error code                                                      *
 ******************************************************************************/
 TDLIMITER_ERROR setLimiterThreshold(TDLimiterPtr limiter, INT_PCM threshold);
+
+#endif
 
 #ifdef __cplusplus
 }

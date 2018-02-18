@@ -92,7 +92,7 @@ amm-info@iis.fraunhofer.de
 #define TPDEC_DRM_H
 
 #include "tpdec_lib.h"
-
+#ifndef ENABLE_ONLY_BT_TRANSPORT
 
 #include "FDK_crc.h"
 
@@ -190,5 +190,5 @@ TRANSPORTDEC_ERROR DrmRawSdcAudioConfig_Parse( CSAudioSpecificConfig *pAsc,
                                                HANDLE_FDK_BITSTREAM hBs );
 
 
-
+#endif
 #endif /* TPDEC_DRM_H */

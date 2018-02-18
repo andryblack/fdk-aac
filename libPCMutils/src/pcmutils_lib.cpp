@@ -106,7 +106,7 @@ amm-info@iis.fraunhofer.de
                                           coefficient carried in the PCE.                       */
 
 #define PCM_DMX_MAX_IN_CHANNELS          ( 8 )   /* Neither the maximum number of input nor the maximum number of output channels ... */
-#define PCM_DMX_MAX_OUT_CHANNELS         ( 8 )   /* ... must exceed the maximum number of channels that the framework can handle. */
+#define PCM_DMX_MAX_OUT_CHANNELS         ( 2 )   /* ... must exceed the maximum number of channels that the framework can handle. */
 
 /* ------------------------ *
  *    SPECIFIC SETTINGS:    *
@@ -114,7 +114,7 @@ amm-info@iis.fraunhofer.de
 #define PCM_CHANNEL_EXTENSION_ENABLE             /*!< Allow module to duplicate mono signals or add zero channels to achieve the
                                                       desired number of output channels. */
 
-#define PCM_DMX_DFLT_MAX_OUT_CHANNELS    ( 6 )   /*!< The maximum number of output channels. If the value is greater than 0 the module
+#define PCM_DMX_DFLT_MAX_OUT_CHANNELS    ( 2 )   /*!< The maximum number of output channels. If the value is greater than 0 the module
                                                       will automatically create a mixdown for all input signals with more channels
                                                       than specified. */
 #define PCM_DMX_DFLT_MIN_OUT_CHANNELS    ( 0 )   /*!< The minimum number of output channels. If the value is greater than 0 the module

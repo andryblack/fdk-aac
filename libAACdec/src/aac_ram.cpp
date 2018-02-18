@@ -108,15 +108,15 @@ C_ALLOC_MEM(AacDecoder, AAC_DECODER_INSTANCE, 1)
 /*! The structure CAacDecoderStaticChannelInfo contains the static sideinfo which is needed
     for the decoding of one aac channel. <br>
     Dimension: #AacDecoderChannels                                                      */
-C_ALLOC_MEM2(AacDecoderStaticChannelInfo, CAacDecoderStaticChannelInfo, 1, (8))
+C_ALLOC_MEM2(AacDecoderStaticChannelInfo, CAacDecoderStaticChannelInfo, 1, (MAX_CHANNELS))
 
 /*! The structure CAacDecoderChannelInfo contains the dynamic sideinfo which is needed
     for the decoding of one aac channel. <br>
     Dimension: #AacDecoderChannels                                                      */
-C_AALLOC_MEM2(AacDecoderChannelInfo, CAacDecoderChannelInfo, 1, (8))
+C_AALLOC_MEM2(AacDecoderChannelInfo, CAacDecoderChannelInfo, 1, (MAX_CHANNELS))
 
 /*! Overlap buffer */
-C_ALLOC_MEM2(OverlapBuffer, FIXP_DBL, OverlapBufferSize, (8))
+C_ALLOC_MEM2(OverlapBuffer, FIXP_DBL, OverlapBufferSize, (MAX_CHANNELS))
 
 C_ALLOC_MEM(DrcInfo, CDrcInfo, 1)
 

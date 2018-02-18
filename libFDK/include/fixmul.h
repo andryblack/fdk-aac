@@ -221,7 +221,7 @@ inline LONG fixmul_SD (const SHORT a, const LONG b) {
 #ifdef FUNCTION_fixmul_DS
   return fixmul_SD(b, a);
 #else
-  return fixmuldiv2_SD (a, b) << 1 ;
+  return ULONG(fixmuldiv2_SD (a, b)) << 1 ;
 #endif
 }
 #endif

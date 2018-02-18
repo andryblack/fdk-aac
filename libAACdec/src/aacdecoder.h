@@ -104,14 +104,16 @@ amm-info@iis.fraunhofer.de
 
 #include "genericStds.h"
 
-
+#ifndef DISABLE_SBR
 #include "sbrdecoder.h"
-
+#endif
 
 #include "aacdec_drc.h"
 
  #include "pcmutils_lib.h"
  #include "limiter.h"
+
+#define MAX_CHANNELS        2
 
 
 /* Capabilities flags */
@@ -181,8 +183,8 @@ struct AAC_DECODER_INSTANCE {
   UCHAR                 elTags[(8)];   /*!< Table where the elements id Tags are listed      */
   UCHAR                 chMapping[(8)];   /*!< Table of MPEG canonical order to bitstream channel order mapping. */
 
-  AUDIO_CHANNEL_TYPE    channelType[(8)];    /*!< Audio channel type of each output audio channel (from 0 upto numChannels).           */
-  UCHAR                 channelIndices[(8)]; /*!< Audio channel index for each output audio channel (from 0 upto numChannels).         */
+  AUDIO_CHANNEL_TYPE    channelType[8];    /*!< Audio channel type of each output audio channel (from 0 upto numChannels).           */
+  UCHAR                 channelIndices[8]; /*!< Audio channel index for each output audio channel (from 0 upto numChannels).         */
                                                              /* See ISO/IEC 13818-7:2005(E), 8.5.3.2 Explicit channel mapping using a program_config_element() */
 
 
@@ -192,24 +194,25 @@ struct AAC_DECODER_INSTANCE {
 
   CProgramConfig                pce;
   CStreamInfo                   streamInfo;         /*!< pointer to StreamInfo data (read from the bitstream) */
-  CAacDecoderChannelInfo       *pAacDecoderChannelInfo[(8)];       /*!< Temporal channel memory */
-  CAacDecoderStaticChannelInfo *pAacDecoderStaticChannelInfo[(8)]; /*!< Persistent channel memory */
+  CAacDecoderChannelInfo       *pAacDecoderChannelInfo[MAX_CHANNELS];       /*!< Temporal channel memory */
+  CAacDecoderStaticChannelInfo *pAacDecoderStaticChannelInfo[MAX_CHANNELS]; /*!< Persistent channel memory */
 
   CAacDecoderCommonData         aacCommonData;             /*!< Temporal shared data for all channels hooked into pAacDecoderChannelInfo */
 
   CConcealParams                concealCommonData;
 
   INT                   aacChannelsPrev;                          /*!< The amount of AAC core channels of the last successful decode call.         */
-  AUDIO_CHANNEL_TYPE    channelTypePrev[(8)];     /*!< Array holding the channelType values of the last successful decode call.    */
-  UCHAR                 channelIndicesPrev[(8)];  /*!< Array holding the channelIndices values of the last successful decode call. */
+  AUDIO_CHANNEL_TYPE    channelTypePrev[8];     /*!< Array holding the channelType values of the last successful decode call.    */
+  UCHAR                 channelIndicesPrev[8];  /*!< Array holding the channelIndices values of the last successful decode call. */
 
-
+#ifndef DISABLE_SBR
   HANDLE_SBRDECODER   hSbrDecoder;                   /*!< SBR decoder handle.                        */
   UCHAR               sbrEnabled;                    /*!< flag to store if SBR has been detected     */
   UCHAR               sbrEnabledPrev;                /*!< flag to store if SBR has been detected from previous frame */
   UCHAR               psPossible;                    /*!< flag to store if PS is possible            */
   SBR_PARAMS          sbrParams;                     /*!< struct to store all sbr parameters         */
-
+#endif
+  
   QMF_MODE   qmfModeCurr;                            /*!< The current QMF mode                       */
   QMF_MODE   qmfModeUser;                            /*!< The QMF mode requested by the library user */
 
@@ -219,10 +222,11 @@ struct AAC_DECODER_INSTANCE {
   CAncData      ancData;                             /*!< structure to handle ancillary data         */
 
   HANDLE_PCM_DOWNMIX  hPcmUtils;                     /*!< privat data for the PCM utils.             */
+#ifndef DISABLE_LIMITER
   TDLimiterPtr hLimiter;                             /*!< Handle of time domain limiter.             */
   UCHAR        limiterEnableUser;                    /*!< The limiter configuration requested by the library user */
   UCHAR        limiterEnableCurr;                    /*!< The current limiter configuration.         */
-
+#endif
   FIXP_DBL     extGain[1];                           /*!< Gain that must be applied to the output signal. */
   UINT         extGainDelay;                         /*!< Delay that must be accounted for extGain. */
 

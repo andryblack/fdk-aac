@@ -105,6 +105,7 @@ amm-info@iis.fraunhofer.de
 #define MAX_SYNCHS        10
 #define SAMPL_FREQS       12
 
+
 H_ALLOC_MEM(AacDecoder, AAC_DECODER_INSTANCE)
 
 H_ALLOC_MEM(DrcInfo, CDrcInfo)

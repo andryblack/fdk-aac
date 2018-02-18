@@ -116,6 +116,7 @@ typedef struct
 
 typedef FDK_BITSTREAM* HANDLE_FDK_BITSTREAM;
 
+#ifndef DNTUSE_DYNAMIC_MEMORY
 /**
  * \brief CreateBitStream Function.
  *
@@ -139,7 +140,7 @@ HANDLE_FDK_BITSTREAM FDKcreateBitStream (UCHAR *pBuffer,
 
   return hBitStream ;
 }
-
+#endif
 
 /**
  * \brief Initialize BistreamBuffer. BitBuffer can point to filled BitBuffer array .
@@ -182,7 +183,7 @@ FDK_INLINE void FDKresetBitbuffer( HANDLE_FDK_BITSTREAM hBitStream, FDK_BS_CFG c
   hBitStream->ConfigCache = config ;
 }
 
-
+#ifndef DNTUSE_DYNAMIC_MEMORY
 /** DeleteBitStream.
 
     Deletes the in Create Bitstream allocated BitStream and BitBuffer.
@@ -192,7 +193,7 @@ FDK_INLINE void FDKdeleteBitStream (HANDLE_FDK_BITSTREAM hBitStream)
   FDK_DeleteBitBuffer(&hBitStream->hBitBuf) ;
   FDKfree(hBitStream) ;
 }
-
+#endif
 
 /**
  * \brief ReadBits Function (forward). This function returns a number of sequential

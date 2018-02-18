@@ -93,9 +93,9 @@ amm-info@iis.fraunhofer.de
 
 #include "channelinfo.h"
 #include "aac_rom.h"
-
+#ifndef DISABLE_SBR
  #include "sbrdecoder.h"
-
+#endif
 /*
  * Dynamic Range Control
  */
@@ -881,7 +881,9 @@ void aacDecoder_drcApply (
   }
 
   if (!self->enable) {
+#ifndef DISABLE_SBR
     sbrDecoder_drcDisable( (HANDLE_SBRDECODER)pSbrDec, ch );
+#endif
     if (extGain != NULL) {
       INT gainScale = (INT)*extGain;
       /* The gain scaling must be passed to the function in the buffer pointed on by extGain. */
@@ -1082,6 +1084,7 @@ void aacDecoder_drcApply (
     }
   }
   else {
+#ifndef DISABLE_SBR
     HANDLE_SBRDECODER hSbrDecoder = (HANDLE_SBRDECODER)pSbrDec;
     UINT numBands = pDrcChData->numBands;
 
@@ -1096,6 +1099,7 @@ void aacDecoder_drcApply (
             winSeq,
             pDrcChData->bandTop
           );
+#endif
   }
 
   return;

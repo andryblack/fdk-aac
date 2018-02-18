@@ -89,7 +89,7 @@ amm-info@iis.fraunhofer.de
 ******************************************************************************/
 
 #include "tpdec_adts.h"
-
+#ifndef ENABLE_ONLY_BT_TRANSPORT
 
 #include "FDK_bitstream.h"
 
@@ -388,4 +388,4 @@ int adtsRead_GetRawDataBlockLength(
   return length;
 }
 
-
+#endif

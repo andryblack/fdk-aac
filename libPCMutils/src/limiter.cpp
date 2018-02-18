@@ -90,6 +90,7 @@ amm-info@iis.fraunhofer.de
 
 #include "limiter.h"
 
+#ifndef DISABLE_LIMITER
 
 struct TDLimiter {
   unsigned int  attack;
@@ -496,3 +497,5 @@ TDLIMITER_ERROR setLimiterThreshold(TDLimiterPtr limiter, INT_PCM threshold)
 
   return TDLIMIT_OK;
 }
+
+#endif
