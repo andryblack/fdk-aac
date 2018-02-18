@@ -90,7 +90,7 @@ amm-info@iis.fraunhofer.de
 
 #include "tpdec_adif.h"
 
-
+#ifndef ENABLE_ONLY_BT_TRANSPORT
 #include "FDK_bitstream.h"
 #include "genericStds.h"
 
@@ -139,17 +139,17 @@ TRANSPORTDEC_ERROR adifRead_DecodeHeader(
   if (pAdifHeader->BitstreamType == 0) {
     FDKpushBiDirectional(bs,20);  /* adif_buffer_fullness */
   }
-
+#ifdef TP_PCE_ENABLE
   /* Parse all PCEs but keep only one */
   for (i=0; i < pAdifHeader->NumProgramConfigElements; i++)
   {
     CProgramConfig_Read(pPce, bs, startAnchor);
   }
-
+#endif
   FDKbyteAlign(bs, startAnchor);
 
   return (ErrorStatus);
 }
 
-
+#endif
 

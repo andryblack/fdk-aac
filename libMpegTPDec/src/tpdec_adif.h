@@ -92,7 +92,7 @@ amm-info@iis.fraunhofer.de
 #define TPDEC_ADIF_H
 
 #include "tpdec_lib.h"
-
+#ifndef ENABLE_ONLY_BT_TRANSPORT
 #define MIN_ADIF_HEADERLENGTH  63  /* in bits */
 
 typedef struct
@@ -119,5 +119,5 @@ TRANSPORTDEC_ERROR adifRead_DecodeHeader(
         CProgramConfig      *pPce,
         HANDLE_FDK_BITSTREAM bs
         );
-
+#endif
 #endif /* TPDEC_ADIF_H */

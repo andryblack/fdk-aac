@@ -99,7 +99,7 @@ amm-info@iis.fraunhofer.de
  * Configuration
  */
 #define TP_GA_ENABLE
-/* #define TP_CELP_ENABLE */
+//#define TP_CELP_ENABLE 
 /* #define TP_HVXC_ENABLE */
 /* #define TP_SLS_ENABLE */
 #define TP_ELD_ENABLE

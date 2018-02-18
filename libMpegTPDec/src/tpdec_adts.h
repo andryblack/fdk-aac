@@ -92,7 +92,7 @@ amm-info@iis.fraunhofer.de
 #define TPDEC_ADTS_H
 
 #include "tpdec_lib.h"
-
+#ifndef ENABLE_ONLY_BT_TRANSPORT
 
 #define ADTS_SYNCWORD               ( 0xfff )
 #define ADTS_SYNCLENGTH             ( 12 )     /* in bits */
@@ -232,5 +232,5 @@ int adtsRead_GetRawDataBlockLength(
         INT         blockNum
         );
 
-
+#endif
 #endif /* TPDEC_ADTS_H */

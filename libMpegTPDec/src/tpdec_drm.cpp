@@ -89,7 +89,7 @@ amm-info@iis.fraunhofer.de
 ******************************************************************************/
 
 #include "tpdec_drm.h"
-
+#ifndef ENABLE_ONLY_BT_TRANSPORT
 
 #include "FDK_bitstream.h"
 
@@ -144,3 +144,4 @@ TRANSPORTDEC_ERROR drmRead_CrcCheck( HANDLE_DRM pDrm )
 }
 
 
+#endif

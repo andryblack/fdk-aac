@@ -105,7 +105,7 @@ amm-info@iis.fraunhofer.de
 /* @{ */
 
 /*! SBR Decoder main structure */
-C_ALLOC_MEM(Ram_SbrDecoder, struct SBR_DECODER_INSTANCE, 1)
+C_ALLOC_MEM(Ram_SbrDecoder, SBR_DECODER_INSTANCE, 1)
 /*! SBR Decoder element data  <br>
   Dimension: (8) */
 C_ALLOC_MEM2(Ram_SbrDecElement, SBR_DECODER_ELEMENT, 1, (8))

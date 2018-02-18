@@ -143,9 +143,9 @@ amm-info@iis.fraunhofer.de
 #include "FDK_tools_rom.h"
 
   #include "aacdec_pns.h"
-
+#ifndef DISABLE_SBR
   #include "sbrdecoder.h"
-
+#endif
 
 
 
@@ -179,11 +179,13 @@ void CAacDecoder_SyncQmfMode(HANDLE_AACDECODER self)
     }
   }
 
-
+#ifndef DISABLE_SBR
   /* Set SBR to current QMF mode. Error does not matter. */
   sbrDecoder_SetParam(self->hSbrDecoder, SBR_QMF_MODE, (self->qmfModeCurr == MODE_LP));
   self->psPossible = ((CAN_DO_PS(self->streamInfo.aot) && self->streamInfo.aacNumChannels == 1 && ! (self->flags & AC_MPS_PRESENT))) && self->qmfModeCurr == MODE_HQ ;
   FDK_ASSERT( ! ( (self->flags & AC_MPS_PRESENT) && self->psPossible ) );
+#endif
+
 }
 
 void CAacDecoder_SignalInterruption(HANDLE_AACDECODER self)
@@ -403,6 +405,7 @@ static AAC_DECODER_ERROR CDataStreamElement_Read (
 
   \return  PCE status (-1: fail, 0: no new PCE, 1: PCE updated, 2: PCE updated need re-config).
 */
+static CCM_SECTION CProgramConfig tmpPce[1];
 static int CProgramConfigElement_Read (
     HANDLE_FDK_BITSTREAM bs,
     HANDLE_TRANSPORTDEC  pTp,
@@ -414,7 +417,7 @@ static int CProgramConfigElement_Read (
   int crcReg;
 
   /* read PCE to temporal buffer first */
-  C_ALLOC_SCRATCH_START(tmpPce, CProgramConfig, 1);
+  //C_ALLOC_SCRATCH_START(tmpPce, CProgramConfig, 1);
 
   CProgramConfig_Init(tmpPce);
   CProgramConfig_Reset(tmpPce);
@@ -458,7 +461,7 @@ static int CProgramConfigElement_Read (
     }
   }
 
-  C_ALLOC_SCRATCH_END(tmpPce, CProgramConfig, 1);
+  //C_ALLOC_SCRATCH_END(tmpPce, CProgramConfig, 1);
 
   return pceStatus;
 }
@@ -509,7 +512,7 @@ AAC_DECODER_ERROR CAacDecoder_ExtPayloadParse (HANDLE_AACDECODER self,
     }
     break;
 
-
+#ifndef DISABLE_SBR
   case EXT_SBR_DATA_CRC:
     crcFlag = 1;
   case EXT_SBR_DATA:
@@ -564,7 +567,7 @@ AAC_DECODER_ERROR CAacDecoder_ExtPayloadParse (HANDLE_AACDECODER self,
       error = AAC_DEC_PARSE_ERROR;
     }
     break;
-
+#endif
   case EXT_FILL_DATA:
     {
       int temp;
@@ -783,7 +786,7 @@ LINKSPEC_CPP void CAacDecoder_Close(HANDLE_AACDECODER self)
   if (self == NULL)
     return;
 
-  for (ch=0; ch<(8); ch++) {
+  for (ch=0; ch<(MAX_CHANNELS); ch++) {
     if (self->pAacDecoderStaticChannelInfo[ch] != NULL) {
       if (self->pAacDecoderStaticChannelInfo[ch]->pOverlapBuffer != NULL) {
         FreeOverlapBuffer (&self->pAacDecoderStaticChannelInfo[ch]->pOverlapBuffer);
@@ -834,13 +837,13 @@ LINKSPEC_CPP AAC_DECODER_ERROR CAacDecoder_Init(HANDLE_AACDECODER self, const CS
   switch (asc->m_aot) {
   case AOT_AAC_LC:
     self->streamInfo.profile = 1;
-
+#ifdef TP_GA_ENABLE
   case AOT_ER_AAC_SCAL:
     if (asc->m_sc.m_gaSpecificConfig.m_layer > 0) {
       /* aac_scalable_extension_element() currently not supported. */
       return AAC_DEC_UNSUPPORTED_FORMAT;
     }
-
+#endif
   case AOT_SBR:
   case AOT_PS:
   case AOT_ER_AAC_LD:
@@ -900,7 +903,7 @@ LINKSPEC_CPP AAC_DECODER_ERROR CAacDecoder_Init(HANDLE_AACDECODER self, const CS
     return AAC_DEC_UNSUPPORTED_CHANNELCONFIG;
   }
 
-  if (ascChannels > (8)) {
+  if (ascChannels > (MAX_CHANNELS)) {
     return AAC_DEC_UNSUPPORTED_CHANNELCONFIG;
   }
 
@@ -952,8 +955,9 @@ LINKSPEC_CPP AAC_DECODER_ERROR CAacDecoder_Init(HANDLE_AACDECODER self, const CS
   self->streamInfo.extSamplingRate      = asc->m_extensionSamplingFrequency;
   self->flags |= (asc->m_sbrPresentFlag) ? AC_SBR_PRESENT : 0;
   self->flags |= (asc->m_psPresentFlag) ? AC_PS_PRESENT : 0;
+#ifndef DISABLE_SBR
   self->sbrEnabled = 0;
-
+#endif
   /* --------- vcb11 ------------ */
   self->flags |= (asc->m_vcb11Flag) ? AC_ER_VCB11 : 0;
 
@@ -967,8 +971,10 @@ LINKSPEC_CPP AAC_DECODER_ERROR CAacDecoder_Init(HANDLE_AACDECODER self, const CS
     self->flags |=  AC_ELD;
     self->flags |= (asc->m_sbrPresentFlag) ? AC_SBR_PRESENT : 0;  /* Need to set the SBR flag for backward-compatibility
                                                                      reasons. Even if SBR is not supported. */
+#ifdef TP_ELD_ENABLE
     self->flags |= (asc->m_sc.m_eldSpecificConfig.m_sbrCrcFlag) ? AC_SBRCRC : 0;
     self->flags |= (asc->m_sc.m_eldSpecificConfig.m_useLdQmfTimeAlign) ? AC_LD_MPS : 0;
+#endif
   }
   self->flags |= (asc->m_aot == AOT_ER_AAC_LD) ? AC_LD : 0;
   self->flags |= (asc->m_epConfig >= 0) ? AC_ER : 0;
@@ -980,11 +986,12 @@ LINKSPEC_CPP AAC_DECODER_ERROR CAacDecoder_Init(HANDLE_AACDECODER self, const CS
     self->flags |= AC_SCALABLE;
   }
 
-
+#ifndef DISABLE_SBR
   if (asc->m_sbrPresentFlag) {
     self->sbrEnabled = 1;
     self->sbrEnabledPrev = 1;
   }
+#endif
   if (asc->m_psPresentFlag) {
     self->flags |= AC_PS_PRESENT;
   }
@@ -1036,6 +1043,8 @@ LINKSPEC_CPP AAC_DECODER_ERROR CAacDecoder_Init(HANDLE_AACDECODER self, const CS
            /* Hook shared work memory into channel data structure */
            self->pAacDecoderChannelInfo[ch]->pDynData =  aacDecoderDynamicData;
            self->pAacDecoderChannelInfo[ch]->pComData = &self->aacCommonData;
+            
+           self->pAacDecoderChannelInfo[ch]->pSpectralCoefficient = (SPECTRAL_PTR) &self->aacCommonData.workBufferCore2[ch*1024];
          }
 
          /* Allocate persistent channel memory */
@@ -1048,7 +1057,7 @@ LINKSPEC_CPP AAC_DECODER_ERROR CAacDecoder_Init(HANDLE_AACDECODER self, const CS
            if (self->pAacDecoderStaticChannelInfo[ch]->pOverlapBuffer == NULL) {
              goto bail;
            }
-           self->pAacDecoderChannelInfo[ch]->pSpectralCoefficient = (SPECTRAL_PTR) &self->aacCommonData.workBufferCore2[ch*1024];
+           
 
          }
          CPns_InitPns(&self->pAacDecoderChannelInfo[ch]->data.aac.PnsData, &self->aacCommonData.pnsInterChannelData, &self->aacCommonData.pnsCurrentSeed, self->aacCommonData.pnsRandomSeed);
@@ -1110,7 +1119,7 @@ bail:
   return AAC_DEC_OUT_OF_MEMORY;
 }
 
-
+static CCM_SECTION FIXP_DBL mdctSpec[1024];
 LINKSPEC_CPP AAC_DECODER_ERROR CAacDecoder_DecodeFrame(
         HANDLE_AACDECODER self,
         const UINT flags,
@@ -1252,8 +1261,10 @@ LINKSPEC_CPP AAC_DECODER_ERROR CAacDecoder_DecodeFrame(
         if ( !(self->flags & (AC_USAC|AC_RSVD50)) ) {
           int ch;
           for (ch=0; ch < el_channels; ch+=1) {
-            CPns_ResetData(&self->pAacDecoderChannelInfo[aacChannels+ch]->data.aac.PnsData,
+              if (aacChannels+ch < MAX_CHANNELS) {
+                  CPns_ResetData(&self->pAacDecoderChannelInfo[aacChannels+ch]->data.aac.PnsData,
                            &self->pAacDecoderChannelInfo[aacChannels+ch]->pComData->pnsInterChannelData);
+              }
           }
         }
 
@@ -1306,6 +1317,7 @@ LINKSPEC_CPP AAC_DECODER_ERROR CAacDecoder_DecodeFrame(
           else {
             self->frameOK = 0;
           }
+#ifndef DISABLE_SBR
           /* Create SBR element for SBR for upsampling for LFE elements,
              and if SBR was explicitly signaled, because the first frame(s)
              may not contain SBR payload (broken encoder, bit errors). */
@@ -1327,6 +1339,7 @@ LINKSPEC_CPP AAC_DECODER_ERROR CAacDecoder_DecodeFrame(
               self->sbrEnabled = 0;
             }
           }
+#endif
         }
 
         el_cnt[type]++;
@@ -1345,7 +1358,7 @@ LINKSPEC_CPP AAC_DECODER_ERROR CAacDecoder_DecodeFrame(
         if (self->frameOK)
         {
           /* memory for spectral lines temporal on scratch */
-          C_ALLOC_SCRATCH_START(mdctSpec, FIXP_DBL, 1024);
+          //C_ALLOC_SCRATCH_START();
 
           /* create dummy channel for CCE parsing on stack */
           CAacDecoderChannelInfo  tmpAacDecoderChannelInfo, *pTmpAacDecoderChannelInfo;
@@ -1375,7 +1388,7 @@ LINKSPEC_CPP AAC_DECODER_ERROR CAacDecoder_DecodeFrame(
                                               self->hInput
                                              );
 
-          C_ALLOC_SCRATCH_END(mdctSpec, FIXP_DBL, 1024);
+          //C_ALLOC_SCRATCH_END(mdctSpec, FIXP_DBL, 1024);
 
           if (ErrorStatus) {
             self->frameOK = 0;
@@ -1497,6 +1510,7 @@ LINKSPEC_CPP AAC_DECODER_ERROR CAacDecoder_DecodeFrame(
 
           if ( (bitCnt > 0) && (self->flags & AC_SBR_PRESENT) && (self->flags & (AC_USAC|AC_RSVD50|AC_ELD|AC_DRM)) )
           {
+#ifndef DISABLE_SBR
             SBR_ERROR err = SBRDEC_OK;
             int  elIdx, numChElements = el_cnt[ID_SCE] + el_cnt[ID_CPE];
 
@@ -1527,9 +1541,13 @@ LINKSPEC_CPP AAC_DECODER_ERROR CAacDecoder_DecodeFrame(
               self->sbrEnabled = 1;
               break;
             default:
+#endif
               self->frameOK = 0;
+#ifndef DISABLE_SBR
               break;
             }
+#endif
+
           }
 
 
@@ -1630,13 +1648,17 @@ LINKSPEC_CPP AAC_DECODER_ERROR CAacDecoder_DecodeFrame(
     self->aacChannelsPrev = aacChannels;  /* store */
     FDKmemcpy(self->channelTypePrev, self->channelType, (8)*sizeof(AUDIO_CHANNEL_TYPE));  /* store */
     FDKmemcpy(self->channelIndicesPrev, self->channelIndices, (8)*sizeof(UCHAR));         /* store */
+#ifndef DISABLE_SBR
     self->sbrEnabledPrev = self->sbrEnabled;
+#endif
   } else {
     if (self->aacChannels > 0) {
       aacChannels = self->aacChannelsPrev;  /* restore */
       FDKmemcpy(self->channelType, self->channelTypePrev, (8)*sizeof(AUDIO_CHANNEL_TYPE));  /* restore */
       FDKmemcpy(self->channelIndices, self->channelIndicesPrev, (8)*sizeof(UCHAR));         /* restore */
+#ifndef DISABLE_SBR
       self->sbrEnabled = self->sbrEnabledPrev;
+#endif
      }
   }
 
@@ -1682,13 +1704,23 @@ LINKSPEC_CPP AAC_DECODER_ERROR CAacDecoder_DecodeFrame(
     int stride, offset, c;
 
     /* Turn on/off DRC modules level normalization in digital domain depending on the limiter status. */
-    aacDecoder_drcSetParam( self->hDrcInfo, APPLY_NORMALIZATION, (self->limiterEnableCurr) ? 0 : 1 );
+    aacDecoder_drcSetParam( self->hDrcInfo, APPLY_NORMALIZATION, 
+#ifdef DISABLE_LIMITER
+      1
+#else
+      (self->limiterEnableCurr) ? 0 : 1
+#endif 
+      );
     /* Extract DRC control data and map it to channels (without bitstream delay) */
     aacDecoder_drcProlog (
             self->hDrcInfo,
             bs,
             self->pAacDecoderStaticChannelInfo,
+#ifdef TP_PCE_ENABLE
             self->pce.ElementInstanceTag,
+#else
+            0,
+#endif
             self->chMapping,
             aacChannels
           );
@@ -1743,13 +1775,21 @@ LINKSPEC_CPP AAC_DECODER_ERROR CAacDecoder_DecodeFrame(
       /* DRC processing */
       aacDecoder_drcApply (
               self->hDrcInfo,
+#ifndef DISABLE_SBR
               self->hSbrDecoder,
+#else
+              0,
+#endif
               pAacDecoderChannelInfo,
              &self->pAacDecoderStaticChannelInfo[c]->drcData,
               self->extGain,
               c,
               self->streamInfo.aacSamplesPerFrame,
+#ifndef DISABLE_SBR
               self->sbrEnabled
+#else
+              0
+#endif
             );
 
       switch (pAacDecoderChannelInfo->renderMode)
@@ -1792,7 +1832,11 @@ LINKSPEC_CPP AAC_DECODER_ERROR CAacDecoder_DecodeFrame(
             self->hDrcInfo,
             bs,
             self->pAacDecoderStaticChannelInfo,
+#ifdef TP_PCE_ENABLE
             self->pce.ElementInstanceTag,
+#else
+            0,
+#endif
             self->chMapping,
             aacChannels
           );

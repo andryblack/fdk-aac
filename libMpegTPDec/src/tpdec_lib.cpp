@@ -108,14 +108,15 @@ amm-info@iis.fraunhofer.de
 #define MODULE_NAME "transportDec"
 
 typedef union {
+#ifndef ENABLE_ONLY_BT_TRANSPORT
   STRUCT_ADTS adts;
 
   CAdifHeader adif;
-
+#endif
   CLatmDemux latm;
-
+#ifndef ENABLE_ONLY_BT_TRANSPORT
   STRUCT_DRM drm;
-
+#endif
 } transportdec_parser_t;
 
 struct TRANSPORTDEC
@@ -170,7 +171,7 @@ HANDLE_TRANSPORTDEC transportDec_Open( const TRANSPORT_TYPE transportFmt, const 
   hInput->transportFmt = transportFmt;
 
   switch (transportFmt) {
-
+#ifndef ENABLE_ONLY_BT_TRANSPORT
   case TT_MP4_ADIF:
     break;
 
@@ -187,7 +188,7 @@ HANDLE_TRANSPORTDEC transportDec_Open( const TRANSPORT_TYPE transportFmt, const 
   case TT_DRM:
     drmRead_CrcInit(&hInput->parser.drm);
     break;
-
+#endif
   case TT_MP4_LATM_MCP0:
   case TT_MP4_LATM_MCP1:
   case TT_MP4_LOAS:
@@ -258,6 +259,7 @@ TRANSPORTDEC_ERROR transportDec_OutOfBandConfig(HANDLE_TRANSPORTDEC hTp, UCHAR *
         }
       }
       break;
+#ifndef ENABLE_ONLY_BT_TRANSPORT
     case TT_DRM:
       fConfigFound = 1;
       err = DrmRawSdcAudioConfig_Parse(&hTp->asc[layer], hBs);
@@ -270,6 +272,7 @@ TRANSPORTDEC_ERROR transportDec_OutOfBandConfig(HANDLE_TRANSPORTDEC hTp, UCHAR *
         }
       }
       break;
+#endif
   }
 
   if (err == TRANSPORTDEC_OK && fConfigFound) {
@@ -365,11 +368,13 @@ INT transportDec_GetBufferFullness( const HANDLE_TRANSPORTDEC hTp )
   INT bufferFullness = -1;
 
   switch (hTp->transportFmt) {
+#ifndef ENABLE_ONLY_BT_TRANSPORT
     case TT_MP4_ADTS:
       if (hTp->parser.adts.bs.adts_fullness != 0x7ff) {
         bufferFullness = hTp->parser.adts.bs.frame_length*8 + hTp->parser.adts.bs.adts_fullness * 32 * getNumberOfEffectiveChannels(hTp->parser.adts.bs.channel_config);
       }
       break;
+#endif
     case TT_MP4_LOAS:
     case TT_MP4_LATM_MCP0:
     case TT_MP4_LATM_MCP1:
@@ -421,7 +426,7 @@ TRANSPORTDEC_ERROR transportDec_AdjustEndOfAccessUnit(HANDLE_TRANSPORTDEC hTp)
         }
       }
       break;
-
+#ifndef ENABLE_ONLY_BT_TRANSPORT
     case TT_MP4_ADTS:
       if (hTp->parser.adts.bs.protection_absent == 0)
       {
@@ -451,7 +456,7 @@ TRANSPORTDEC_ERROR transportDec_AdjustEndOfAccessUnit(HANDLE_TRANSPORTDEC hTp)
         }
       }
       break;
-
+#endif
     default:
       break;
   }
@@ -546,6 +551,7 @@ static TRANSPORTDEC_ERROR transportDec_readHeader(
   startPos = FDKgetValidBits(hBs);
 
   switch (hTp->transportFmt) {
+#ifndef ENABLE_ONLY_BT_TRANSPORT
     case TT_MP4_ADTS:
       if (hTp->numberOfRawDataBlocks <= 0)
       {
@@ -601,6 +607,7 @@ static TRANSPORTDEC_ERROR transportDec_readHeader(
         hTp->parser.latm.m_audioMuxLengthBytes = syncLayerFrameBits;
         syncLayerFrameBits <<= 3;
       }
+#endif
     case TT_MP4_LATM_MCP1:
     case TT_MP4_LATM_MCP0:
       if (hTp->numberOfRawDataBlocks <= 0)
@@ -707,6 +714,7 @@ TRANSPORTDEC_ERROR synchronization(
 
   /* Set transport specific sync parameters */
   switch (hTp->transportFmt) {
+#ifndef ENABLE_ONLY_BT_TRANSPORT
     case TT_MP4_ADTS:
       syncWord = ADTS_SYNCWORD;
       syncLength = ADTS_SYNCLENGTH;
@@ -715,6 +723,7 @@ TRANSPORTDEC_ERROR synchronization(
       syncWord = 0x2B7;
       syncLength = 11;
       break;
+#endif
     default:
       syncWord = 0;
       syncLength = 0;
@@ -1062,7 +1071,8 @@ TRANSPORTDEC_ERROR transportDec_ReadAccessUnit( const HANDLE_TRANSPORTDEC hTp, c
   }
 
   switch (hTp->transportFmt) {
-
+#ifndef ENABLE_ONLY_BT_TRANSPORT
+#ifdef TP_PCE_ENABLE
     case TT_MP4_ADIF:
       /* Read header if not already done */
       if (!(hTp->flags & TPDEC_CONFIG_FOUND))
@@ -1098,7 +1108,7 @@ TRANSPORTDEC_ERROR transportDec_ReadAccessUnit( const HANDLE_TRANSPORTDEC hTp, c
       }
       hTp->auLength[layer] = -1; /* Access Unit data length is unknown. */
       break;
-
+#endif
     case TT_MP4_RAW:
     case TT_DRM:
       /* One Access Unit was filled into buffer.
@@ -1106,7 +1116,7 @@ TRANSPORTDEC_ERROR transportDec_ReadAccessUnit( const HANDLE_TRANSPORTDEC hTp, c
       hTp->auLength[layer] = FDKgetValidBits(hBs);
       hTp->flags |= TPDEC_SYNCOK;
       break;
-
+#endif
     case TT_MP4_LATM_MCP0:
     case TT_MP4_LATM_MCP1:
       {
@@ -1117,12 +1127,12 @@ TRANSPORTDEC_ERROR transportDec_ReadAccessUnit( const HANDLE_TRANSPORTDEC hTp, c
         }
       }
       break;
-
+#ifndef ENABLE_ONLY_BT_TRANSPORT
     case TT_MP4_ADTS:
     case TT_MP4_LOAS:
       err = transportDec_readStream(hTp, layer);
       break;
-
+#endif
     default:
       err = TRANSPORTDEC_UNSUPPORTED_FORMAT;
       break;
@@ -1248,9 +1258,10 @@ UINT transportDec_GetNrOfSubFrames(HANDLE_TRANSPORTDEC hTp)
 
   if (hTp->transportFmt==TT_MP4_LATM_MCP1 || hTp->transportFmt==TT_MP4_LATM_MCP0 || hTp->transportFmt==TT_MP4_LOAS)
     nSubFrames = CLatmDemux_GetNrOfSubFrames(&hTp->parser.latm);
+#ifndef ENABLE_ONLY_BT_TRANSPORT
   else if (hTp->transportFmt==TT_MP4_ADTS)
     nSubFrames = hTp->parser.adts.bs.num_raw_blocks;
-
+#endif
   return nSubFrames;
 }
 
@@ -1311,10 +1322,12 @@ TRANSPORTDEC_ERROR transportDec_GetLibInfo( LIB_INFO *info )
 int  transportDec_CrcStartReg(HANDLE_TRANSPORTDEC pTp, INT mBits)
 {
   switch (pTp->transportFmt) {
+#ifndef ENABLE_ONLY_BT_TRANSPORT
   case TT_MP4_ADTS:
     return adtsRead_CrcStartReg(&pTp->parser.adts, &pTp->bitStream[0], mBits);
   case TT_DRM:
     return drmRead_CrcStartReg(&pTp->parser.drm, &pTp->bitStream[0], mBits);
+#endif
   default:
     return 0;
   }
@@ -1323,12 +1336,14 @@ int  transportDec_CrcStartReg(HANDLE_TRANSPORTDEC pTp, INT mBits)
 void transportDec_CrcEndReg(HANDLE_TRANSPORTDEC pTp, INT reg)
 {
   switch (pTp->transportFmt) {
+#ifndef ENABLE_ONLY_BT_TRANSPORT
   case TT_MP4_ADTS:
     adtsRead_CrcEndReg(&pTp->parser.adts, &pTp->bitStream[0], reg);
     break;
   case TT_DRM:
     drmRead_CrcEndReg(&pTp->parser.drm, &pTp->bitStream[0], reg);
     break;
+#endif
   default:
     break;
   }
@@ -1337,6 +1352,7 @@ void transportDec_CrcEndReg(HANDLE_TRANSPORTDEC pTp, INT reg)
 TRANSPORTDEC_ERROR transportDec_CrcCheck(HANDLE_TRANSPORTDEC pTp)
 {
   switch (pTp->transportFmt) {
+#ifndef ENABLE_ONLY_BT_TRANSPORT
   case TT_MP4_ADTS:
     if ( (pTp->parser.adts.bs.num_raw_blocks > 0) && (pTp->parser.adts.bs.protection_absent == 0) )
     {
@@ -1348,6 +1364,7 @@ TRANSPORTDEC_ERROR transportDec_CrcCheck(HANDLE_TRANSPORTDEC pTp)
   case TT_DRM:
     return drmRead_CrcCheck(&pTp->parser.drm);
     break;
+#endif
   default:
     return TRANSPORTDEC_OK;
   }

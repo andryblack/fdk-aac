@@ -218,8 +218,8 @@ inline void cplxMult( FIXP_DBL *c_Re,
                       const FIXP_SGL  b_Re,
                       const FIXP_SGL  b_Im)
 {
-  *c_Re = fMult(a_Re,b_Re) - fMult(a_Im,b_Im);
-  *c_Im = fMult(a_Re,b_Im) + fMult(a_Im,b_Re);
+  *c_Re = ULONG(fMult(a_Re,b_Re)) - ULONG(fMult(a_Im,b_Im));
+  *c_Im = ULONG(fMult(a_Re,b_Im)) + ULONG(fMult(a_Im,b_Re));
 }
 #endif
 

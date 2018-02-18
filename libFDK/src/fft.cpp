@@ -1082,13 +1082,16 @@ static inline void fft_apply_rot_vector(FIXP_DBL *RESTRICT pData, const int cl, 
 
 
 #ifdef FFT_TWO_STAGE_MACRO_ENABLE
-
+static CCM_SECTION FIXP_DBL aDst[480*2];
+static CCM_SECTION FIXP_DBL aDst2[15*2];
 #define fftN2(pInput, length, dim1, dim2, fft_func1, fft_func2, RotVectorReal, RotVectorImag) \
 { \
   int       i, j; \
  \
-  C_ALLOC_SCRATCH_START(aDst, FIXP_DBL, length*2); \
-  C_ALLOC_SCRATCH_START(aDst2, FIXP_DBL, dim2*2); \
+FDK_ASSERT(length <= 480); \
+FDK_ASSERT(dim2 <= 15); \
+  /* C_ALLOC_SCRATCH_START(aDst, FIXP_DBL, length*2); */ \
+  /* C_ALLOC_SCRATCH_START(aDst2, FIXP_DBL, dim2*2); */ \
  \
   FDK_ASSERT(length == dim1*dim2); \
  \
@@ -1147,8 +1150,8 @@ static inline void fft_apply_rot_vector(FIXP_DBL *RESTRICT pData, const int cl, 
     } \
   } \
   \
-  C_ALLOC_SCRATCH_END(aDst2, FIXP_DBL, dim2*2); \
-  C_ALLOC_SCRATCH_END(aDst, FIXP_DBL, length*2); \
+  /* C_ALLOC_SCRATCH_END(aDst2, FIXP_DBL, dim2*2); */ \
+  /* C_ALLOC_SCRATCH_END(aDst, FIXP_DBL, length*2); */ \
 } \
 
 #else /* FFT_TWO_STAGE_MACRO_ENABLE */
